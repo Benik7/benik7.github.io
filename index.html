@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<p>import java.util.InputMismatchException;
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        SpravceVydaju spravceVydaju = new SpravceVydaju();
+        spravceVydaju.nactiVydaje();
+        spravceVydaju.nactiKategorie();
+
+        SpravcePrijmu spravcePrijmu = new SpravcePrijmu();
+        spravcePrijmu.nactiPrijmy();
+        spravcePrijmu.nactiKategorie();
+        
+        Scanner scanner = new Scanner(System.in);
+
+        boolean pokracovat = true;
+        while (pokracovat) {
+            System.out.println("Vyberte možnost:");
+            System.out.println("1. Přidat položku");
+            System.out.println("2. Vypsat položky ve zvoleném měsíci");
+            System.out.println("3. Vypsat součet položek ve zvoleném měsíci");
+            System.out.println("4. Upravit položku");
+            System.out.println("5. Odstranit položku");
+            System.out.println("6. Správa kategorií");
+            System.out.println("7. Konec");
+
+            int volba = 0;
+            boolean platnaVolba = false;
+            while (!platnaVolba) {
+                try {
+                    volba = scanner.nextInt();
+                    scanner.nextLine();
+                    if (volba >= 1 && volba <= 7) {
+                        platnaVolba = true;
+                    } else {
+                        System.out.println("Neplatná volba. Zadejte prosím číslo od 1 do 6.");
+                    }
+                } catch (InputMismatchException e) {
+                    System.out.println("Neplatná volba. Zadejte prosím číslo.");
+                    scanner.next();
+                }
+            }
+
+            switch (volba) {
+                case 1:
+                    SpravceMain.spravujPridaniPolozky(scanner, spravceVydaju, spravcePrijmu);
+                    break;
+                case 2:
+                    SpravceMain.spravujVypisPolozekVMesici(scanner, spravceVydaju, spravcePrijmu);
+                    break;
+                case 3:
+                    SpravceMain.zobrazCelkoveVydajeAPrijmyVMesici(scanner);
+                    break;
+                case 4:
+                    SpravceMain.spravujUpravuPolozek(scanner, spravceVydaju, spravcePrijmu);
+                    break;
+                case 5:
+                    SpravceMain.spravujOdstraneniPolozek(scanner, spravceVydaju, spravcePrijmu);
+                    break;
+                case 6:
+                    SpravceMain.vyberSpravuKategorii(spravceVydaju, spravcePrijmu, scanner);
+                case 7:
+                    pokracovat = !KontrolaUkonceni.overUkonceni(scanner);
+                    break;
+                default:
+                    System.out.println("Něco se pokazilo. Zkuste to znovu.");
+            }
+        }
+
+        spravceVydaju.ulozVydaje();
+        spravcePrijmu.ulozPrijmy();
+        spravceVydaju.ulozKategorie();
+        spravcePrijmu.ulozKategorie();
+    }
+}</p>
+<p>-----</p>
+<p>public class Datum {
+    public static int dnyVmesici(int month, int year) {
+        switch (month) {
+            case 2:
+                if (((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0))
+                    return 29;
+                else
+                    return 28;
+            case 4:
+            case 6:
+            case 9:
+            case 11:
+                return 30;
+            default:
+                return 31;
+        }
+    }
+}</p>
+<p>---</p>
+<p>public class Kategorie {
+    private String nazev;
+
+    public Kategorie(String nazev) {
+        this.nazev = nazev;
+    }
+
+    public String getNazev() {
+        return nazev;
+    }
+
+    public void setNazev(String nazev) {
+        this.nazev = nazev;
+    }
+}</p>
+<p>----</p>
+<p>import java.util.Scanner;
+
+public class KontrolaUkonceni {
+
+    public static boolean overUkonceni(Scanner scanner) {
+        boolean platnaOdpoved = false;
+        while (!platnaOdpoved) {
+            System.out.println("Opravdu chcete ukončit program? (ano/ne)");
+            String potvrzeni = scanner.nextLine().toLowerCase();
+            if (potvrzeni.equals("ano")) {
+                System.out.println("Ukončení aplikace.");
+                return true;
+            } else if (potvrzeni.equals("ne")) {
+                System.out.println("Pokračování v programu.");
+                return false;
+            } else {
+                System.out.println("Neplatná odpověď. Zadejte prosím 'ano' nebo 'ne'.");
+            }
+        }
+        return false;
+    }
+}</p>
+<p>-----</p>
+<p>public class Prijem {
+    private String popis;
+    private double castka;
+    private String kategorie;
+    private String datum;
+
+    public Prijem(String popis, double castka, String kategorie, String datum) {
+        this.popis = popis;
+        this.castka = castka;
+        this.kategorie = kategorie;
+        this.datum = datum;
+    }
+
+    public String getPopis() {
+        return popis;
+    }
+
+    public void setPopis(String popis) {
+        this.popis = popis;
+    }
+
+    public double getCastka() {
+        return castka;
+    }
+
+    public void setCastka(double castka) {
+        this.castka = castka;
+    }
+
+    public String getKategorie() {
+        return kategorie;
+    }
+
+    public void setKategorie(String kategorie) {
+        this.kategorie = kategorie;
+    }
+
+    public String getDatum() {
+        return datum;
+    }
+
+    public void setDatum(String datum) {
+        this.datum = datum;
+    }
+}</p>
+<p>-----</p>
+<p>import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class SpravceDat {
+    private static final String VYDAJE_SOUBOR = "vydaje.txt";
+    private static final String KATEGORIEPRIJMU_SOUBOR = "kategoriePrijmu.txt";
+    private static final String PRIJEM_SOUBOR = "prijem.txt";
+    private static final String KATEGORIEVYDAJU_SOUBOR = "kategorieVydaju.txt";
+
+    public static void ulozVydaje(List<Vydaj> vydaje) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(VYDAJE_SOUBOR))) {
+            for (Vydaj vydaj : vydaje) {
+                bw.write(vydaj.getPopis() + "," + vydaj.getCastka() + "," + vydaj.getKategorie() + "," + vydaj.getDatum());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Chyba při ukládání výdajů: " + e.getMessage());
+        }
+    }
+
+    public static List<Vydaj> nactiVydaje() {
+        List<Vydaj> vydaje = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(VYDAJE_SOUBOR))) {
+            String radek;
+            while ((radek = br.readLine()) != null) {
+                String[] data = radek.split(",");
+                Vydaj vydaj = new Vydaj(data[0], Double.parseDouble(data[1]), data[2], data[3]);
+                vydaje.add(vydaj);
+            }
+        } catch (IOException e) {
+            System.out.println("Chyba při načítání výdajů: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Chyba formátu čísla při načítání výdajů.");
+        }
+        return vydaje;
+    }
+
+    public static void ulozKategoriePrijmu(List<Kategorie> kategorie) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(KATEGORIEPRIJMU_SOUBOR))) {
+            for (Kategorie k : kategorie) {
+                bw.write(k.getNazev());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Chyba při ukládání kategorií: " + e.getMessage());
+        }
+    }
+
+    public static List<Kategorie> nactiKategoriePrijmu() {
+        List<Kategorie> kategorie = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(KATEGORIEPRIJMU_SOUBOR))) {
+            String radek;
+            while ((radek = br.readLine()) != null) {
+                Kategorie k = new Kategorie(radek);
+                kategorie.add(k);
+            }
+        } catch (IOException e) {
+            System.out.println("Chyba při načítání kategorií: " + e.getMessage());
+        }
+        return kategorie;
+    }
+
+    public static void ulozKategorieVydaju(List<Kategorie> kategorie) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(KATEGORIEVYDAJU_SOUBOR))) {
+            for (Kategorie k : kategorie) {
+                bw.write(k.getNazev());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Chyba při ukládání kategorií: " + e.getMessage());
+        }
+    }
+
+    public static List<Kategorie> nactiKategorieVydaju() {
+        List<Kategorie> kategorie = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(KATEGORIEVYDAJU_SOUBOR))) {
+            String radek;
+            while ((radek = br.readLine()) != null) {
+                Kategorie k = new Kategorie(radek);
+                kategorie.add(k);
+            }
+        } catch (IOException e) {
+            System.out.println("Chyba při načítání kategorií: " + e.getMessage());
+        }
+        return kategorie;
+    }
+
+    public static void ulozPrijmy(List<Prijem> prijmy) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(PRIJEM_SOUBOR))) {
+            for (Prijem prijem : prijmy) {
+                bw.write(prijem.getPopis() + "," + prijem.getCastka() + "," + prijem.getKategorie() + "," + prijem.getDatum());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Chyba při ukládání příjmů: " + e.getMessage());
+        }
+    }
+
+    public static List<Prijem> nactiPrijmy() {
+        List<Prijem> prijmy = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(PRIJEM_SOUBOR))) {
+            String radek;
+            while ((radek = br.readLine()) != null) {
+                String[] data = radek.split(",");
+                Prijem prijem = new Prijem(data[0], Double.parseDouble(data[1]), data[2], data[3]);
+                prijmy.add(prijem);
+            }
+        } catch (IOException e) {
+            System.out.println("Chyba při načítání příjmů: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Chyba formátu čísla při načítání příjmů.");
+        }
+        return prijmy;
+    }
+}</p>
+<p>------</p>
+<p>import java.util.InputMismatchException;
+import java.util.Scanner;
+
+public class SpravceMain {
+    public static void spravujPridaniPolozky(Scanner scanner, SpravceVydaju spravceVydaju, SpravcePrijmu spravcePrijmu) {
+        System.out.println("Vyberte možnost:");
+        System.out.println("1. Přidat výdaj");
+        System.out.println("2. Přidat příjem");
+
+        int volbaPridani = 0;
+        boolean platnaVolbaPridani = false;
+        while (!platnaVolbaPridani) {
+            try {
+                volbaPridani = scanner.nextInt();
+                scanner.nextLine();
+                if (volbaPridani >= 1 && volbaPridani <= 2) {
+                    platnaVolbaPridani = true;
+                } else {
+                    System.out.println("Neplatná volba. Zadejte číslo 1 nebo 2.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatná volba. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        switch (volbaPridani) {
+            case 1:
+                spravceVydaju.zpracujPridaniVydaje(scanner);
+                spravcePrijmu.ulozKategorie();
+                break;
+            case 2:
+                spravcePrijmu.zpracujPridaniPrijmu(scanner);
+                break;
+            default:
+                System.out.println("Neplatná volba.");
+                break;
+        }
+    }
+
+    public static void spravujVypisPolozekVMesici(Scanner scanner, SpravceVydaju spravceVydaju, SpravcePrijmu spravcePrijmu) {
+        System.out.println("Vyberte možnost:");
+        System.out.println("1. Výpisy výdajů v měsíci");
+        System.out.println("2. Výpisy příjmů v měsíci");
+
+        int volbaVypis = 0;
+        boolean platnaVolbaVypis = false;
+        while (!platnaVolbaVypis) {
+            try {
+                volbaVypis = scanner.nextInt();
+                scanner.nextLine();
+                if (volbaVypis >= 1 && volbaVypis <= 2) {
+                    platnaVolbaVypis = true;
+                } else {
+                    System.out.println("Neplatná volba. Zadejte číslo 1 nebo 2.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatná volba. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        switch (volbaVypis) {
+            case 1:
+                spravceVydaju.vypisVydajeVMesici(scanner);
+                break;
+            case 2:
+                spravcePrijmu.vypisPrijmyVMesici(scanner);
+                break;
+            default:
+                System.out.println("Neplatná volba.");
+                break;
+        }
+    }
+
+    public static void spravujUpravuPolozek(Scanner scanner, SpravceVydaju spravceVydaju, SpravcePrijmu spravcePrijmu) {
+        System.out.println("Vyberte možnost:");
+        System.out.println("1. Úprava výdaje");
+        System.out.println("2. Úprava příjmu");
+
+        int volbaUprava = 0;
+        boolean platnaVolbaUprava = false;
+        while (!platnaVolbaUprava) {
+            try {
+                volbaUprava = scanner.nextInt();
+                scanner.nextLine();
+                if (volbaUprava >= 1 && volbaUprava <= 2) {
+                    platnaVolbaUprava = true;
+                } else {
+                    System.out.println("Neplatná volba. Zadejte číslo 1 nebo 2.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatná volba. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        switch (volbaUprava) {
+            case 1:
+                spravceVydaju.upravVydaj(scanner);
+                break;
+            case 2:
+                spravcePrijmu.upravPrijem(scanner);
+                break;
+            default:
+                System.out.println("Neplatná volba.");
+                break;
+        }
+    }
+
+    public static void spravujOdstraneniPolozek(Scanner scanner, SpravceVydaju spravceVydaju, SpravcePrijmu spravcePrijmu) {
+        System.out.println("Vyberte možnost:");
+        System.out.println("1. Odstranit výdaj");
+        System.out.println("2. Odstranit příjem");
+
+        int volbaOdstraneni = 0;
+        boolean platnaVolbaOdstraneni = false;
+        while (!platnaVolbaOdstraneni) {
+            try {
+                volbaOdstraneni = scanner.nextInt();
+                scanner.nextLine();
+                if (volbaOdstraneni >= 1 && volbaOdstraneni <= 2) {
+                    platnaVolbaOdstraneni = true;
+                } else {
+                    System.out.println("Neplatná volba. Zadejte číslo 1 nebo 2.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatná volba. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        switch (volbaOdstraneni) {
+            case 1:
+                spravceVydaju.odstranVydaj(scanner);
+                break;
+            case 2:
+                spravcePrijmu.odstranPrijem(scanner);
+                break;
+            default:
+                System.out.println("Neplatná volba.");
+                break;
+        }
+    }
+
+    public static void zobrazCelkoveVydajeAPrijmyVMesici(Scanner scanner) {
+        int rok = 0;
+        while (rok < 2023) {
+            System.out.println("Zadejte rok (min. 2023, max. 2030):");
+            try {
+                rok = scanner.nextInt();
+                if (rok < 2023 || rok > 2030) {
+                    System.out.println("Zadaný rok je příliš nízký nebo vysoký. Zadejte prosím rok 2023 nebo později.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný rok. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        int mesic = 0;
+        while (mesic < 1 || mesic > 12) {
+            System.out.println("Zadejte měsíc (1-12):");
+            try {
+                mesic = scanner.nextInt();
+                if (mesic < 1 || mesic > 12) {
+                    System.out.println("Zadaný měsíc je mimo rozsah. Zadejte prosím měsíc v rozsahu 1 až 12.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný měsíc. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+        scanner.nextLine();
+
+        double celkoveVydaje = SpravceVydaju.spocitejCelkoveVydajeVMesici(rok, mesic);
+        double celkovePrijmy = SpravcePrijmu.spocitejCelkovePrijmyVMesici(rok, mesic);
+
+        System.out.println("Celkové výdaje v měsíci " + mesic + "/" + rok + ": " + celkoveVydaje);
+        System.out.println("Celkové příjmy v měsíci " + mesic + "/" + rok + ": " + celkovePrijmy);
+
+        double rozdil = celkovePrijmy - celkoveVydaje;
+        if (rozdil > 0) {
+            System.out.println("Tento měsíc jsi v plusu " + rozdil + ", GRATULUJI.");
+        } else if (rozdil < 0) {
+            rozdil = Math.abs(rozdil);
+            System.out.println("Tento měsíc jsi " + rozdil + " v minusu, SNAŽ SE VÍC.");
+        } else {
+            System.out.println("Tento měsíc jsi na 0.");
+        }
+    }
+    public static void vyberSpravuKategorii(SpravceVydaju spravceVydaju, SpravcePrijmu spravcePrijmu, Scanner scanner) {
+        System.out.println("Vyberte správu kategorií:");
+        System.out.println("1. Kategorie výdajů");
+        System.out.println("2. Kategorie příjmů");
+
+        int volba = 0;
+        boolean platnaVolba = false;
+        while (!platnaVolba) {
+            try {
+                volba = scanner.nextInt();
+                scanner.nextLine();
+                if (volba == 1 || volba == 2) {
+                    platnaVolba = true;
+                } else {
+                    System.out.println("Neplatná volba. Zadejte prosím číslo 1 nebo 2.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatná volba. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        if (volba == 1) {
+            spravceVydaju.spravaKategorie(scanner);
+        } else if (volba == 2) {
+            spravcePrijmu.spravaKategorie(scanner);
+        }
+    }
+}</p>
+<p>------</p>
+<p>import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.InputMismatchException;
+import java.util.List;
+import java.util.Scanner;
+
+public class SpravcePrijmu {
+    private static List<Prijem> prijmy;
+    private List<Kategorie> kategorie;
+    private List<Kategorie> noveKategorie;
+    private SpravceDat spravceDat;
+
+    public SpravcePrijmu() {
+        this.prijmy = new ArrayList<>();
+        this.kategorie = spravceDat.nactiKategoriePrijmu();
+        this.noveKategorie = new ArrayList<>();
+        this.spravceDat = new SpravceDat();
+    }
+
+    public void pridejPrijem(Prijem prijem) {
+        prijmy.add(prijem);
+
+        boolean existujeKategorie = false;
+        for (Kategorie k : this.kategorie) {
+            if (k.getNazev().equalsIgnoreCase(prijem.getKategorie())) {
+                existujeKategorie = true;
+                break;
+            }
+        }
+
+        if (!existujeKategorie) {
+            Kategorie novaKategorie = new Kategorie(prijem.getKategorie());
+            this.kategorie.add(novaKategorie);
+            SpravceDat.ulozKategoriePrijmu(this.kategorie);
+        }
+    }
+
+    public void ulozPrijmy() {
+        SpravceDat.ulozPrijmy(this.prijmy);
+    }
+
+    public void nactiPrijmy() {
+        this.prijmy = SpravceDat.nactiPrijmy();
+    }
+
+    public void ulozKategorie() {
+        SpravceDat.ulozKategoriePrijmu(this.kategorie);
+    }
+    public void nactiKategorie() {
+        this.kategorie = SpravceDat.nactiKategoriePrijmu();
+    }
+
+    public void vypisPrijmyVMesici(Scanner scanner) {
+        int rok = 0;
+        while (rok < 2023) {
+            System.out.println("Zadejte rok (min. 2023, max. 2030):");
+            try {
+                rok = scanner.nextInt();
+                if (rok < 2023 || rok > 2030) {
+                    System.out.println("Zadaný rok je příliš nízký nebo vysoký. Zadejte prosím rok 2023 nebo později.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný rok. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        int mesic = 0;
+        while (mesic < 1 || mesic > 12) {
+            System.out.println("Zadejte měsíc (1-12):");
+            try {
+                mesic = scanner.nextInt();
+                if (mesic < 1 || mesic > 12) {
+                    System.out.println("Zadaný měsíc je mimo rozsah. Zadejte prosím měsíc v rozsahu 1 až 12.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný měsíc. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+        scanner.nextLine();
+
+        int pocetPrijmu = vyhledejPrijmyVMesici(rok, mesic);
+
+        if (pocetPrijmu == 0) {
+            System.out.println("V daném měsíci nejsou žádné příjmy.");
+        }
+    }
+
+    public int vyhledejPrijmyVMesici(int rok, int mesic) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        System.out.println("Příjmy pro " + rok + "-" + mesic + ":");
+
+        int pocetPrijmu = 0;
+
+        for (Prijem prijem : prijmy) {
+            LocalDate datumPrijmu = LocalDate.parse(prijem.getDatum(), formatter);
+            if (datumPrijmu.getYear() == rok && datumPrijmu.getMonthValue() == mesic) {
+                System.out.println(prijem.getPopis() + ", částka: " + prijem.getCastka() + ", kategorie: " + prijem.getKategorie() + ", datum: " + prijem.getDatum());
+                pocetPrijmu++;
+            }
+        }
+        return pocetPrijmu;
+
+    }
+
+    public void zpracujPridaniPrijmu(Scanner scanner) {
+        System.out.println("Zadejte popis příjmu:");
+        String popis = scanner.nextLine();
+
+        double castka = 0;
+        boolean platnaCastka = false;
+        do {
+            System.out.println("Zadejte částku:");
+            try {
+                castka = scanner.nextDouble();
+                if (castka >= 0) {
+                    platnaCastka = true;
+                } else {
+                    System.out.println("Částka musí být nezáporné číslo.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatná částka. Zadejte číslo.");
+                scanner.next();
+            }
+        } while (!platnaCastka);
+
+        System.out.println("Zadejte kategorii:");
+        String kategorie = scanner.next();
+
+        int rok = 0;
+        while (rok < 2023 || rok > 2030) {
+            System.out.println("Zadejte rok (min. 2023, max. 2030):");
+            try {
+                rok = scanner.nextInt();
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný rok. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        int mesic = 0;
+        while (mesic < 1 || mesic > 12) {
+            System.out.println("Zadejte měsíc (1-12):");
+            try {
+                mesic = scanner.nextInt();
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný měsíc. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        int maxDay = Datum.dnyVmesici(mesic, rok);
+        System.out.println("Zadejte den (1-" + maxDay + "):");
+        int den = -1;
+        boolean platnyDen = false;
+        while (!platnyDen) {
+            try {
+                den = scanner.nextInt();
+                if (den >= 1 && den <= maxDay) {
+                    platnyDen = true;
+                } else {
+                    System.out.println("Zadaný den je mimo rozsah. Zadejte prosím den v rozsahu 1 až " + maxDay + ".");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný den. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+        scanner.nextLine();
+
+        String datum = String.format("%04d-%02d-%02d", rok, mesic, den);
+
+        Prijem prijem = new Prijem(popis, castka, kategorie, datum);
+        pridejPrijem(prijem);
+        ulozPrijmy();
+        ulozKategorie();
+        System.out.println("Příjem úspěšně přidán.");
+    }
+    public void upravPrijem(Scanner scanner) {
+        System.out.println("Zadejte popis příjmu k úpravě:");
+        String popis = scanner.nextLine();
+
+        Prijem prijemKeUprave = null;
+        for (Prijem prijem : prijmy) {
+            if (prijem.getPopis().equalsIgnoreCase(popis)) {
+                prijemKeUprave = prijem;
+                break;
+            }
+        }
+
+        if (prijemKeUprave == null) {
+            System.out.println("Příjem nebyl nalezen.");
+            return;
+        }
+
+        System.out.println("Zadejte nový popis příjmu:");
+        String novyPopis = scanner.nextLine();
+        prijemKeUprave.setPopis(novyPopis);
+
+        System.out.println("Zadejte novou částku:");
+        double novaCastka = scanner.nextDouble();
+        prijemKeUprave.setCastka(novaCastka);
+
+        System.out.println("Zadejte novou kategorii:");
+        String novaKategorie = scanner.next();
+        prijemKeUprave.setKategorie(novaKategorie);
+
+        System.out.println("Zadejte nové datum (ve formátu RRRR-MM-DD):");
+        String noveDatum = scanner.next();
+        prijemKeUprave.setDatum(noveDatum);
+
+        ulozPrijmy();
+        System.out.println("Příjem byl úspěšně upraven.");
+    }
+
+    public void odstranPrijem(Scanner scanner) {
+        System.out.println("Zadejte popis příjmu k odstranění:");
+        String popis = scanner.nextLine();
+
+        Prijem prijemKeOdstraneni = null;
+        for (Prijem prijem : prijmy) {
+            if (prijem.getPopis().equalsIgnoreCase(popis)) {
+                prijemKeOdstraneni = prijem;
+                break;
+            }
+        }
+
+        if (prijemKeOdstraneni == null) {
+            System.out.println("Příjem nebyl nalezen.");
+            return;
+        }
+
+        prijmy.remove(prijemKeOdstraneni);
+        ulozPrijmy();
+        System.out.println("Příjem byl úspěšně odstraněn.");
+    }
+    public static double spocitejCelkovePrijmyVMesici(int rok, int mesic) {
+        double celkovePrijmy = 0;
+
+        for (Prijem prijem : prijmy) {
+            LocalDate datumPrijmu = LocalDate.parse(prijem.getDatum(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            if (datumPrijmu.getYear() == rok && datumPrijmu.getMonthValue() == mesic) {
+                celkovePrijmy += prijem.getCastka();
+            }
+        }
+
+        return celkovePrijmy;
+    }
+    public void pridejKategorii(Kategorie kategorie) {
+        this.kategorie.add(kategorie);
+        this.spravceDat.ulozKategoriePrijmu(this.kategorie);
+    }
+    public void smazKategorii(String nazev) {
+        Kategorie kategorieKeSmazani = null;
+        for (Kategorie kategorie : this.kategorie) {
+            if (kategorie.getNazev().equalsIgnoreCase(nazev)) {
+                kategorieKeSmazani = kategorie;
+                break;
+            }
+        }
+        if (kategorieKeSmazani != null) {
+            this.kategorie.remove(kategorieKeSmazani);
+            this.spravceDat.ulozKategoriePrijmu(this.kategorie);
+            System.out.println("Kategorie úspěšně smazána.");
+        } else {
+            System.out.println("Kategorie nebyla nalezena.");
+        }
+    }
+    public void prejmenujKategorii(String staryNazev) {
+        Kategorie kategorieKPrejmenovani = null;
+        for (Kategorie kategorie : this.kategorie) {
+            if (kategorie.getNazev().equalsIgnoreCase(staryNazev)) {
+                kategorieKPrejmenovani = kategorie;
+                break;
+            }
+        }
+        if (kategorieKPrejmenovani == null) {
+            System.out.println("Kategorie nebyla nalezena.");
+            return;
+        }
+
+        System.out.println("Zadejte nový název kategorie:");
+        Scanner scanner = new Scanner(System.in);
+        String novyNazev = scanner.nextLine();
+
+        kategorieKPrejmenovani.setNazev(novyNazev);
+        this.spravceDat.ulozKategoriePrijmu(this.kategorie);
+        System.out.println("Kategorie úspěšně přejmenována.");
+    }
+    public void spravaKategorie(Scanner scanner) {
+        this.kategorie = this.spravceDat.nactiKategoriePrijmu();
+        if (kategorie.isEmpty()) {
+            System.out.println("Žádná kategorie není vytvořena.");
+        } else {
+            System.out.println("Vytvořené kategorie:");
+            for (Kategorie kategorie : this.kategorie) {
+                System.out.println("- " + kategorie.getNazev());
+            }
+        }
+
+        boolean pokracovat = true;
+        while (pokracovat) {
+            System.out.println("Vyberte možnost:");
+            System.out.println("1. Přidat kategorii");
+            System.out.println("2. Smazat kategorii");
+            System.out.println("3. Přejmenovat kategorii");
+            System.out.println("4. Zpět");
+
+            int volba = 0;
+            boolean platnaVolba = false;
+            while (!platnaVolba) {
+                try {
+                    volba = scanner.nextInt();
+                    scanner.nextLine();
+                    if (volba >= 1 && volba <= 4) {
+                        platnaVolba = true;
+                    } else {
+                        System.out.println("Neplatná volba. Zadejte prosím číslo od 1 do 4.");
+                    }
+                } catch (InputMismatchException e) {
+                    System.out.println("Neplatná volba. Zadejte prosím číslo.");
+                    scanner.next();
+                }
+            }
+
+            switch (volba) {
+                case 1:
+                    System.out.println("Zadejte název nové kategorie:");
+                    String nazevNoveKategorie = scanner.nextLine();
+                    this.pridejKategorii(new Kategorie(nazevNoveKategorie));
+                    this.spravceDat.ulozKategoriePrijmu(this.kategorie);
+                    System.out.println("Kategorie úspěšně přidána.");
+                    break;
+                case 2:
+                    System.out.println("Zadejte název kategorie k smazání:");
+                    String nazevKeSmazani = scanner.nextLine();
+                    this.smazKategorii(nazevKeSmazani);
+                    this.spravceDat.ulozKategoriePrijmu(this.kategorie);
+                    break;
+                case 3:
+                    System.out.println("Zadejte název kategorie k přejmenování:");
+                    String staryNazev = scanner.nextLine();
+                    this.prejmenujKategorii(staryNazev);
+                    this.spravceDat.ulozKategoriePrijmu(this.kategorie);
+                    break;
+                case 4:
+                    pokracovat = false;
+                    break;
+                default:
+                    System.out.println("Něco se pokazilo. Zkuste to znovu.");
+            }
+        }
+    }
+}</p>
+<p>-----</p>
+<p>import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.InputMismatchException;
+import java.util.List;
+import java.util.Scanner;
+
+public class SpravceVydaju {
+    private static List<Vydaj> vydaje;
+    private List<Kategorie> kategorie;
+    private List<Kategorie> noveKategorie;
+    private SpravceDat spravceDat;
+
+    public SpravceVydaju() {
+        this.vydaje = new ArrayList<>();
+        this.kategorie = spravceDat.nactiKategorieVydaju();
+        this.noveKategorie = new ArrayList<>();
+        this.spravceDat = new SpravceDat();
+    }
+
+    public void pridejVydaj(Vydaj vydaj) {
+        vydaje.add(vydaj);
+
+        boolean existujeKategorie = false;
+        for (Kategorie k : this.kategorie) {
+            if (k.getNazev().equalsIgnoreCase(vydaj.getKategorie())) {
+                existujeKategorie = true;
+                break;
+            }
+        }
+
+        if (!existujeKategorie) {
+            Kategorie novaKategorie = new Kategorie(vydaj.getKategorie());
+            this.kategorie.add(novaKategorie);
+            SpravceDat.ulozKategorieVydaju(this.kategorie);
+        }
+    }
+
+    public void ulozVydaje() {
+        SpravceDat.ulozVydaje(this.vydaje);
+    }
+
+    public void nactiVydaje() {
+        this.vydaje = SpravceDat.nactiVydaje();
+    }
+
+    public void ulozKategorie() {
+        this.kategorie = spravceDat.nactiKategorieVydaju();
+    }
+
+    public void nactiKategorie() {
+        this.kategorie = SpravceDat.nactiKategorieVydaju();
+    }
+    public void vypisVydajeVMesici(Scanner scanner) {
+        int rok = 0;
+        while (rok < 2023) {
+            System.out.println("Zadejte rok (min. 2023, max. 2030):");
+            try {
+                rok = scanner.nextInt();
+                if (rok < 2023 || rok > 2030) {
+                    System.out.println("Zadaný rok je příliš nízký nebo vysoký. Zadejte prosím rok 2023 nebo později.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný rok. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        int mesic = 0;
+        while (mesic < 1 || mesic > 12) {
+            System.out.println("Zadejte měsíc (1-12):");
+            try {
+                mesic = scanner.nextInt();
+                if (mesic < 1 || mesic > 12) {
+                    System.out.println("Zadaný měsíc je mimo rozsah. Zadejte prosím měsíc v rozsahu 1 až 12.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný měsíc. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+        scanner.nextLine();
+
+        int pocetVydaju = vyhledejVydajeVMesici(rok, mesic);
+
+        if (pocetVydaju == 0) {
+            System.out.println("V daném měsíci nejsou žádné výdaje.");
+        }
+
+    }
+
+    public int vyhledejVydajeVMesici(int rok, int mesic) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        System.out.println("Výdaje pro " + rok + "-" + mesic + ":");
+
+        int pocetVydaju = 0;
+
+        for (Vydaj vydaj : vydaje) {
+            LocalDate datumVydaje = LocalDate.parse(vydaj.getDatum(), formatter);
+            if (datumVydaje.getYear() == rok && datumVydaje.getMonthValue() == mesic) {
+                System.out.println(vydaj.getPopis() + ", částka: " + vydaj.getCastka() + ", kategorie: " + vydaj.getKategorie() + ", datum: " + vydaj.getDatum());
+                pocetVydaju++;
+            }
+        }
+        return pocetVydaju;
+
+    }
+
+    public void smazKategorii(String nazev) {
+        Kategorie kategorieKeSmazani = null;
+        for (Kategorie kategorie : this.kategorie) {
+            if (kategorie.getNazev().equalsIgnoreCase(nazev)) {
+                kategorieKeSmazani = kategorie;
+                break;
+            }
+        }
+        if (kategorieKeSmazani != null) {
+            this.kategorie.remove(kategorieKeSmazani);
+            this.spravceDat.ulozKategorieVydaju(this.kategorie);
+            System.out.println("Kategorie úspěšně smazána.");
+        } else {
+            System.out.println("Kategorie nebyla nalezena.");
+        }
+    }
+
+    public void prejmenujKategorii(String staryNazev) {
+        Kategorie kategorieKPrejmenovani = null;
+        for (Kategorie kategorie : this.kategorie) {
+            if (kategorie.getNazev().equalsIgnoreCase(staryNazev)) {
+                kategorieKPrejmenovani = kategorie;
+                break;
+            }
+        }
+        if (kategorieKPrejmenovani == null) {
+            System.out.println("Kategorie nebyla nalezena.");
+            return;
+        }
+
+        System.out.println("Zadejte nový název kategorie:");
+        Scanner scanner = new Scanner(System.in);
+        String novyNazev = scanner.nextLine();
+
+        kategorieKPrejmenovani.setNazev(novyNazev);
+        this.spravceDat.ulozKategorieVydaju(this.kategorie);
+        System.out.println("Kategorie úspěšně přejmenována.");
+    }
+
+    public void zpracujPridaniVydaje(Scanner scanner) {
+        System.out.println("Zadejte popis výdaje:");
+        String popis = scanner.nextLine();
+
+        double castka = 0;
+        boolean platnaCastka = false;
+        do {
+            System.out.println("Zadejte částku:");
+            try {
+                castka = scanner.nextDouble();
+                if (castka >= 0) {
+                    platnaCastka = true;
+                } else {
+                    System.out.println("Částka musí být nezáporné číslo.");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatná částka. Zadejte číslo.");
+                scanner.next();
+            }
+        } while (!platnaCastka);
+
+        System.out.println("Zadejte kategorii:");
+        String kategorie = scanner.next();
+
+        int rok = 0;
+        while (rok < 2023 || rok > 2030) {
+            System.out.println("Zadejte rok (min. 2023, max. 2030):");
+            try {
+                rok = scanner.nextInt();
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný rok. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        int mesic = 0;
+        while (mesic < 1 || mesic > 12) {
+            System.out.println("Zadejte měsíc (1-12):");
+            try {
+                mesic = scanner.nextInt();
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný měsíc. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+
+        int maxDay = Datum.dnyVmesici(mesic, rok);
+        System.out.println("Zadejte den (1-" + maxDay + "):");
+        int den = -1;
+        boolean platnyDen = false;
+        while (!platnyDen) {
+            try {
+                den = scanner.nextInt();
+                if (den >= 1 && den <= maxDay) {
+                    platnyDen = true;
+                } else {
+                    System.out.println("Zadaný den je mimo rozsah. Zadejte prosím den v rozsahu 1 až " + maxDay + ".");
+                }
+            } catch (InputMismatchException e) {
+                System.out.println("Neplatný den. Zadejte prosím číslo.");
+                scanner.next();
+            }
+        }
+        scanner.nextLine();
+
+        String datum = String.format("%04d-%02d-%02d", rok, mesic, den);
+
+        Vydaj vydaj = new Vydaj(popis, castka, kategorie, datum);
+        this.pridejVydaj(vydaj);
+        this.ulozVydaje();
+        this.ulozKategorie();
+        System.out.println("Výdaj úspěšně přidán.");
+    }
+    public void upravVydaj(Scanner scanner) {
+        System.out.println("Zadejte popis výdaje k úpravě:");
+        String popis = scanner.nextLine();
+
+        Vydaj vydajKeUprave = null;
+        for (Vydaj vydaj : vydaje) {
+            if (vydaj.getPopis().equalsIgnoreCase(popis)) {
+                vydajKeUprave = vydaj;
+                break;
+            }
+        }
+
+        if (vydajKeUprave == null) {
+            System.out.println("Výdaj nebyl nalezen.");
+            return;
+        }
+
+        System.out.println("Zadejte nový popis výdaje:");
+        String novyPopis = scanner.nextLine();
+        vydajKeUprave.setPopis(novyPopis);
+
+        System.out.println("Zadejte novou částku:");
+        double novaCastka = scanner.nextDouble();
+        vydajKeUprave.setCastka(novaCastka);
+
+        System.out.println("Zadejte novou kategorii:");
+        String novaKategorie = scanner.next();
+        vydajKeUprave.setKategorie(novaKategorie);
+
+        System.out.println("Zadejte nové datum (ve formátu RRRR-MM-DD):");
+        String noveDatum = scanner.next();
+        vydajKeUprave.setDatum(noveDatum);
+
+        ulozVydaje();
+        System.out.println("Výdaj byl úspěšně upraven.");
+    }
+
+    public void odstranVydaj(Scanner scanner) {
+        System.out.println("Zadejte popis výdaje k odstranění:");
+        String popis = scanner.nextLine();
+
+        Vydaj vydajKeOdstraneni = null;
+        for (Vydaj vydaj : vydaje) {
+            if (vydaj.getPopis().equalsIgnoreCase(popis)) {
+                vydajKeOdstraneni = vydaj;
+                break;
+            }
+        }
+
+        if (vydajKeOdstraneni == null) {
+            System.out.println("Výdaj nebyl nalezen.");
+            return;
+        }
+
+        vydaje.remove(vydajKeOdstraneni);
+        ulozVydaje();
+        System.out.println("Výdaj byl úspěšně odstraněn.");
+    }
+    public static double spocitejCelkoveVydajeVMesici(int rok, int mesic) {
+        double celkoveVydaje = 0;
+
+        for (Vydaj vydaj : vydaje) {
+            LocalDate datumVydaje = LocalDate.parse(vydaj.getDatum(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            if (datumVydaje.getYear() == rok && datumVydaje.getMonthValue() == mesic) {
+                celkoveVydaje += vydaj.getCastka();
+            }
+        }
+
+        return celkoveVydaje;
+    }
+    public void pridejKategorii(Kategorie kategorie) {
+        this.kategorie.add(kategorie);
+        this.spravceDat.ulozKategorieVydaju(this.kategorie);
+    }
+
+    public void spravaKategorie(Scanner scanner) {
+        this.kategorie = this.spravceDat.nactiKategorieVydaju();
+        if (kategorie.isEmpty()) {
+            System.out.println("Žádná kategorie není vytvořena.");
+        } else {
+            System.out.println("Vytvořené kategorie:");
+            for (Kategorie kategorie : this.kategorie) {
+                System.out.println("- " + kategorie.getNazev());
+            }
+        }
+
+        boolean pokracovat = true;
+        while (pokracovat) {
+            System.out.println("Vyberte možnost:");
+            System.out.println("1. Přidat kategorii");
+            System.out.println("2. Smazat kategorii");
+            System.out.println("3. Přejmenovat kategorii");
+            System.out.println("4. Zpět");
+
+            int volba = 0;
+            boolean platnaVolba = false;
+            while (!platnaVolba) {
+                try {
+                    volba = scanner.nextInt();
+                    scanner.nextLine();
+                    if (volba >= 1 && volba <= 4) {
+                        platnaVolba = true;
+                    } else {
+                        System.out.println("Neplatná volba. Zadejte prosím číslo od 1 do 4.");
+                    }
+                } catch (InputMismatchException e) {
+                    System.out.println("Neplatná volba. Zadejte prosím číslo.");
+                    scanner.next();
+                }
+            }
+
+            switch (volba) {
+                case 1:
+                    System.out.println("Zadejte název nové kategorie:");
+                    String nazevNoveKategorie = scanner.nextLine();
+                    this.pridejKategorii(new Kategorie(nazevNoveKategorie));
+                    this.spravceDat.ulozKategorieVydaju(this.kategorie);
+                    System.out.println("Kategorie úspěšně přidána.");
+                    break;
+                case 2:
+                    System.out.println("Zadejte název kategorie k smazání:");
+                    String nazevKeSmazani = scanner.nextLine();
+                    this.smazKategorii(nazevKeSmazani);
+                    this.spravceDat.ulozKategorieVydaju(this.kategorie);
+                    break;
+                case 3:
+                    System.out.println("Zadejte název kategorie k přejmenování:");
+                    String staryNazev = scanner.nextLine();
+                    this.prejmenujKategorii(staryNazev);
+                    this.spravceDat.ulozKategorieVydaju(this.kategorie);
+                    break;
+                case 4:
+                    pokracovat = false;
+                    break;
+                default:
+                    System.out.println("Něco se pokazilo. Zkuste to znovu.");
+            }
+        }
+    }
+}</p>
+<p>----</p>
+<p>public class Vydaj {
+    private String popis;
+    private double castka;
+    private String kategorie;
+    private String datum;
+
+    public Vydaj(String popis, double castka, String kategorie, String datum) {
+        this.popis = popis;
+        this.castka = castka;
+        this.kategorie = kategorie;
+        this.datum = datum;
+    }
+
+    public String getPopis() {
+        return popis;
+    }
+
+    public void setPopis(String popis) {
+        this.popis = popis;
+    }
+
+    public double getCastka() {
+        return castka;
+    }
+
+    public void setCastka(double castka) {
+        this.castka = castka;
+    }
+
+    public String getKategorie() {
+        return kategorie;
+    }
+
+    public void setKategorie(String kategorie) {
+        this.kategorie = kategorie;
+    }
+
+    public String getDatum() {
+        return datum;
+    }
+
+    public void setDatum(String datum) {
+        this.datum = datum;
+    }
+}</p>
+</body>
+</html>
